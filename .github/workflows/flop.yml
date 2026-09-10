@@ -1,0 +1,100 @@
+name: flop-agent
+
+# Two schedules in one file:
+#   */5      -> kibble job board + blockrewards offer hunting
+#   7 */6    -> signed heartbeat into /r/lobby
+# Nothing here reveals the agent's logic: both the identity and the agent code
+# are injected at runtime from repository secrets.
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '7 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which task to run
+        type: choice
+        options:
+          - both
+          - work
+          - heartbeat
+        default: both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flop-agent
+  cancel-in-progress: false
+
+jobs:
+  work:
+    name: kibble + blockrewards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'work')
+      || github.event_name == 'schedule' && github.event.schedule == '*/5 * * * *'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install --quiet --disable-pip-version-check cryptography
+
+      - name: Materialize agent code and identity
+        env:
+          FLOP_AGENT_CODE: ${{ secrets.FLOP_AGENT_CODE }}
+          FLOP_KEYS_JSON: ${{ secrets.FLOP_KEYS_JSON }}
+        run: |
+          mkdir -p agent
+          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xz -C agent
+          printf '%s' "$FLOP_KEYS_JSON" > agent/keys.json
+          chmod 600 agent/keys.json
+          python -c "import json;d=json.load(open('agent/keys.json'));print('identity:',d['did']);print('fingerprint:',d['fingerprint'])"
+          echo -n 'runner egress ip: '
+          curl -s --max-time 10 https://api.ipify.org || echo '(ip lookup failed)'
+          echo
+
+      - name: Kibble worker
+        working-directory: agent
+        run: python kibble_worker.py
+
+      - name: Blockrewards hunter
+        working-directory: agent
+        run: python blockrewards_hunter.py
+
+  heartbeat:
+    name: heartbeat
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'heartbeat')
+      || github.event_name == 'schedule' && github.event.schedule == '7 */6 * * *'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: python -m pip install --quiet --disable-pip-version-check cryptography
+
+      - name: Materialize agent code and identity
+        env:
+          FLOP_AGENT_CODE: ${{ secrets.FLOP_AGENT_CODE }}
+          FLOP_KEYS_JSON: ${{ secrets.FLOP_KEYS_JSON }}
+        run: |
+          mkdir -p agent
+          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xz -C agent
+          printf '%s' "$FLOP_KEYS_JSON" > agent/keys.json
+          chmod 600 agent/keys.json
+
+      - name: Signed heartbeat
+        working-directory: agent
+        run: python flop_did.py heartbeat Kante
