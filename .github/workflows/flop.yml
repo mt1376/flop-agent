@@ -64,9 +64,9 @@ jobs:
         working-directory: agent
         run: python kibble_worker.py
 
-      - name: Blockrewards hunter
+      - name: Blockrewards hunter (payee side)
         working-directory: agent
-        run: python blockrewards_hunter.py
+        run: python blockrewards_hunter_v2.py
 
   heartbeat:
     name: heartbeat
