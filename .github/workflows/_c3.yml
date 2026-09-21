@@ -1,0 +1,10 @@
+name: PROBE-code2
+on:
+  workflow_dispatch:
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          X: ${{ secrets.FLOP_CODE }}
+        run: echo "len=${#X}"
