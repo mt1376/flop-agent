@@ -1,0 +1,10 @@
+name: PROBE_8000
+on:
+  workflow_dispatch:
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          X: ${{ secrets.TMP_SZ_8000 }}
+        run: echo "len=${#X}"
