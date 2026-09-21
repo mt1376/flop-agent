@@ -1,0 +1,21 @@
+name: p3-ifs
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which task to run
+        type: choice
+        options:
+          - both
+          - work
+        default: both
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'work')
+      || github.event_name == 'schedule' && github.event.schedule == '*/5 * * * *'
+    steps:
+      - run: echo ok
