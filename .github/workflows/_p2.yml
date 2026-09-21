@@ -1,0 +1,10 @@
+name: p2-permissions
+on:
+  workflow_dispatch:
+jobs:
+permissions:
+  contents: read
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
