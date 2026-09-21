@@ -52,7 +52,7 @@ jobs:
           FLOP_KEYS_JSON: ${{ secrets.FLOP_KEYS_JSON }}
         run: |
           mkdir -p agent
-          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xz -C agent
+          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xJ -C agent
           printf '%s' "$FLOP_KEYS_JSON" > agent/keys.json
           chmod 600 agent/keys.json
           python -c "import json;d=json.load(open('agent/keys.json'));print('identity:',d['did']);print('fingerprint:',d['fingerprint'])"
@@ -91,7 +91,7 @@ jobs:
           FLOP_KEYS_JSON: ${{ secrets.FLOP_KEYS_JSON }}
         run: |
           mkdir -p agent
-          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xz -C agent
+          printf '%s' "$FLOP_AGENT_CODE" | base64 -d | tar -xJ -C agent
           printf '%s' "$FLOP_KEYS_JSON" > agent/keys.json
           chmod 600 agent/keys.json
 
