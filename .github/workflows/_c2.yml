@@ -1,0 +1,10 @@
+name: probe-both
+on:
+  workflow_dispatch:
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          X: ${{ secrets.FLOP_AGENT_CODE }} ${{ secrets.FLOP_KEYS_JSON }}
+        run: echo "len=${#X}"
