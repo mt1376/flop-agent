@@ -1,0 +1,11 @@
+name: p1-concurrency
+on:
+  workflow_dispatch:
+jobs:
+concurrency:
+  group: flop-agent
+  cancel-in-progress: false
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
