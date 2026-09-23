@@ -1,7 +1,7 @@
 name: flop-agent
 
 # Two schedules in one file:
-#   */5      -> kibble job board + blockrewards offer hunting
+#   */5      -> kibble job board + a short blockrewards race
 #   7 */6    -> signed heartbeat into /r/lobby
 # Nothing here reveals the agent's logic: both the identity and the agent code
 # are injected at runtime from repository secrets.
@@ -16,10 +16,15 @@ on:
         description: Which task to run
         type: choice
         options:
-          - both
+          - race
           - work
           - heartbeat
-        default: both
+          - both
+        default: race
+      minutes:
+        description: Race window in minutes
+        type: string
+        default: '6'
 
 permissions:
   contents: read
@@ -30,11 +35,11 @@ concurrency:
 
 jobs:
   work:
-    name: kibble + blockrewards
+    name: kibble + blockrewards race
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     if: >-
-      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'work')
+      github.event_name == 'workflow_dispatch' && (inputs.job == 'both' || inputs.job == 'race' || inputs.job == 'work')
       || github.event_name == 'schedule' && github.event.schedule == '*/5 * * * *'
     steps:
       - uses: actions/checkout@v4
@@ -59,14 +64,20 @@ jobs:
           echo -n 'runner egress ip: '
           curl -s --max-time 10 https://api.ipify.org || echo '(ip lookup failed)'
           echo
+          echo -n 'latency to technocore: '
+          curl -s -o /dev/null -w '%{time_total}s\n' --max-time 10 https://technocore.chat/r/lobby?limit=1
 
       - name: Kibble worker
         working-directory: agent
         run: python kibble_worker.py
 
-      - name: Blockrewards hunter (payee side)
+      # The race is a latency game: competing accepts land 0.8-1.4s apart, so a runner with a
+      # ~20ms path to the venue beats a home connection with a ~1s one.
+      - name: Blockrewards race (payee side)
         working-directory: agent
-        run: python blockrewards_hunter_v2.py
+        env:
+          RACE_MINUTES: ${{ github.event_name == 'workflow_dispatch' && inputs.minutes || '4' }}
+        run: python blockrewards_hunter_v2.py --race --minutes="$RACE_MINUTES"
 
   heartbeat:
     name: heartbeat
